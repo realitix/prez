@@ -19,7 +19,7 @@ The ability to run Vulkan under Python
 
 ---
 
-###### The futur is… *Vulkan*
+###### The future is… *Vulkan*
 
 ---
 
