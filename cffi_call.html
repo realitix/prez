@@ -1,0 +1,664 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>Call a C API from Python becomes more enjoyable with CFFI</title>
+
+		<link rel="stylesheet" href="reveal.js/css/reveal.css">
+        <link rel="stylesheet" href="reveal.js/css/theme/white.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="reveal.js/lib/css/zenburn.css">
+
+		<link rel="stylesheet" href="font-awesome-4.7.0/css/font-awesome.min.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+
+	</head>
+	<body>
+<div class="reveal">
+<div class="slides">
+
+<section>
+    <h2>Call a C API from Python becomes more enjoyable with CFFI</h2>
+    <br />
+    <h3>Jean-Sébastien Bevilacqua</h3>
+    <img src="img/pyparis.png" style="border:none" width="40%">
+    <br />
+    <img src="img/linagora.png" style="border:none">
+    <aside class="notes">
+        <p>Welcome everyone, I'm glad to be here with you.</p>
+        <p>I'm Jean-Sébastien Bevilacqua, I work at Linagora, a great company that promotes free software and it's this company which encouraged me to give this talk.</p>
+        <p>If I give this talk today, it's because I truly believe in CFFI to improve maintainability and robustness of Python extension.</p>
+        <p>I want to share with you my experience in order to convince you to give a try to CFFI next time you need to write a Python extension.</p>
+</aside>
+</section>
+
+<section>
+    <h1>Why Python extension ?</h1>
+    <section>
+        <aside class="notes">
+            <p>But first, why do we need Python extension ? I'm going to tell you my use case.</p>
+            <p>Approximatly one year ago, the new Vulkan API was released. </p><p> Back at this time, I was enjoying OpenGL development and with Vulkan, I saw an opportunity to improve my 3d and low level knowledge.</p>
+        </aside></section>
+    <section>
+        <h2 style="color: #6b00d6; padding-top:20%">
+            Accessing low-level API <br/>
+            OpenGL / Vulkan<br />
+            <i class="fa fa-level-down fa-2x"></i>
+        </h2>
+        <aside class="notes">
+        <p>Python was my language of choice (we all know why...) but there was no binding between Python and Vulkan.</p>
+        </aside>
+    </section>
+    <section>
+        <h2 style="color: #d600ae; padding-top:20%; line-height:200% ">
+            Linking to existing C library <br />
+            <i class="fa fa-link fa-2x"></i>
+        </h2>
+        <aside class="notes">
+        <p>As you may know, Vulkan is a low level API and in order to use it, you have to call low levels functions like dlopen and dlsym.</p>
+        <p>I decided to write my Vulkan binding for Python directly in C with the CPython C API.</p>
+        </aside>
+    </section>
+    <section>
+        <h2 style="color: #d60000; line-height:200%; padding-top:20%">
+            Improving performance <br />
+            <i class="fa fa-bolt fa-2x"></i>
+        </h2>
+        <aside class="notes">
+            Python extension can be used to improve performance but that was not my use-case.
+        </aside>
+    </section>
+
+</section>
+
+<section>
+    <h1>Our good friend is always here !</h1>
+    <p>
+        <img src="img/segfault.png" style="border:none" width="100%">
+    </p>
+    <aside class="notes">
+        <p>Yeah, welcome back segmentation fault!</p>
+    </aside>
+</section>
+
+<section data-background-image="backgrounds/lost.jpg">
+    <h1 style="color: white; text-align:left"><i>I'm totally lost <br />with <br />CPython API</i></h1>
+    <aside class="notes">
+        <p>To write a Python extension in C, you have to make use of the CPython API. It allows you to create module, add functions and classes in it.</p>
+        <p> When I started my C extension, after reading the documentation (documentation is good), it was clear and I felt self confident, But... it is C!</p>
+        <p>Let's fight again malloc and free like usual, but, because it's too easy, CPython API adds the reference counting and a cumbersome API.</p>
+        <p> I almost give up several times due to the amount of work...</p>
+    </aside>
+</section>
+
+<section>
+    <h2 style="font-size:1.4em"><i>Application </i><span style="font-size:1.15em; color: red">programming</span> <i>interface</i></h2>
+    <h2><i class="fa fa-refresh fa-spin" style="color: red"></i></h2>
+    <h2 style="font-size:1.4em"><i>Application </i><span style="font-size:1.15em; color: red">binary</span> <i>interface</i></h2>
+    <aside class="notes">
+        <p>From now, I will often use ABI / API words so I need to explain clearly what I mean by theses terms.</p>
+        <p>ABI means Application Binary Interface and API means Application Programming Interface.</p>
+        <p>The API mode is what humans use, when you call a function, you need to know the name of the function and arguments to pass.</p>
+        <p> So as a PROGRAMMING interface, it's all expressed in source code.</p>
+        <p> The ABI is very similar, think of it as a compiled version of the API.</p>
+    </aside>
+</section>
+
+<section>
+    <h1>Why ABI ?</h1>
+    <aside class="notes">
+        <p>To be clear, when you write the program, you use the human API, then, when your program is compiled, computer will access the ABI of the library.</p>
+        <p>Maybe... You wonder the goal of ABI mode from a human point of view, we could just stick to the usual API mode.</p>
+        <p> Accessing a library with ABI mode allows you to dynamically link at runtime, and thus can be used with an interpreted language without compilation.</p>
+        <p> You have to really understand this part, it's the only tricky part needed to fully exploit CFFI potential.</p>
+    </aside>
+</section>
+
+<section>
+    <h1>Cython</h1>
+    <section>
+        <aside class="notes">
+To help writing Python extensions, several projects exist:
+        </aside>
+    </section>
+    <section>
+        <h2 style="color: #6b00d6;">Incremental optimization <br />
+            <span style="font-size:1.4em; color:red">py++</span></h2>
+        <aside class="notes">
+cython use an interesting approach, it can execute directly your Python code and you can add new syntaxes elements by iteration.
+        </aside>
+    </section>
+    <section>
+    <pre style="padding: 5%; font-size:1em">
+def fib(<span style="color:red">int</span> n):
+    <span style="color:red">cdef int</span> a = 0
+    <span style="color:red">cdef int</span> b =  1
+    while b < n:
+        print(b)
+        a, b = b, a + b
+    </pre>
+        <aside class="notes">
+            <p>It's very good but when you start to add custom cython syntax, your Python code is no more Python and thus you loose portability and cython becomes a required dependancy.</p>
+            <p> You should take that into account.</p>
+        </aside>
+    </section>
+    <section>
+        <h2 style="color: #d600ae;">ABI / API</h2>
+        <aside class="notes">
+cython supports API (compiled) and ABI mode.
+        </aside>
+    </section>
+</section>
+
+<section>
+    <h1>ctypes</h1>
+    <section>
+        <h2 style="color:#6b00ae;">Built-in / ABI ONLY</h2>
+        <img src="img/python-logo-custo.png" style="border:none; padding: 5%">
+        <aside class="notes">
+            <p>ctypes is a builtin, it uses libffi internally.</p>
+            <p> With ctypes, you don't need compilation, it works on the ABI mode.</p>
+            <p>You dynamically link to a library during runtime.</p>
+        </aside>
+    </section>
+    <section>
+        <pre><code style="max-height:1000px; margin-top: 9%;">from ctypes import cdll, Structure, c_int, c_double
+
+lib = cdll.LoadLibrary('./vector.so')
+
+# ctypes Point structure
+class Point(Structure):
+    _fields_ = [('x', c_int), ('y', c_int)]
+
+# Initialize Point[2] argument
+points_array = (Point * 2)((1, 2), (3, 4))
+
+# Get vector_size from library
+vector_size_fn = lib.vector_size
+vector_size_fn.restype = c_double
+
+# Call vector_size with ctypes
+size = vector_size_fn(points_array)
+print('out = {}'.format(size))</code></pre>
+
+        <aside class="notes">
+            <p>To use ctypes, you need to learn a new API.</p>
+            <p>Like you can see, you have to copy your C header and translate it in ctypes format.</p>
+            <p>It's error prone and cumbersone.</p>
+        </aside>
+    </section>
+</section>
+
+<section data-background-image="backgrounds/star.jpg">
+    <h1 style="color: white; margin-top:-8%">cffi enlightened</h1>
+    <h2 style="color: white; text-align: right" class="fragment">in-line : import time</h2>
+    <h2 style="color: white; text-align: right" class="fragment">out-of-line : install time</h2>
+
+    <aside class="notes">
+        <div style="font-size: 18px;">
+        <div style="color: blue">
+        <p>Seven years ago, two smart people, Armin Rigo and Maciej Fijałkowski created CFFI.</p>
+        <p> You may know theses names since they authored PyPy too, not a piece of cake!</p>
+        <p> For information Pypy is an alternative Python interpreter with a JIT.</p>
+        <p> At first CFFI was an alternative to ctypes, it was working only in ABI mode, later the API mode was added and revolutionize Python extensions ecosystem.</p>
+        <p> Before CFFI, to create an API mode extension for Python, you had to use the CPython C API or cython which only work with CPython.</p>
+        <p> With Cffi, extensions are working with CPython 2.x/3.x/PyPy without changing a line of your code!</p>
+        </div>
+        <div style="color: green">
+            <p>Now you understand ABI and API mode, I can show you how it works with cffi.</p>
+            <p>But let's introduce another concept of cffi, this one is a lot simpler than ABI and API modes.</p>
+            <p>In the in-line mode, everything is set up every time you import your Python code.</p>
+        </div>
+        <div style="color: red">
+            <p>In the out-of-line mode, you have a separate step of preparation (and possibly compilation) that produces a module which your main program can then import.</p>
+            <p>Of course, in-line mode is available only for ABI mode since API mode always requires compilation.</p>
+        </div>
+        </div>
+    </aside>
+</section>
+
+<section>
+    <h1>ABI / In-line</h1>
+        <pre><code style="max-height:1000px; margin-top: 9%;">from cffi import FFI
+ffi = FFI()
+
+ffi.cdef("int printf(const char *format, ...);")
+
+C = ffi.dlopen(None)
+
+arg = ffi.new("char[]", "world")
+C.printf("hello %s\n", arg)</code></pre>
+        <aside class="notes">
+            <p>Here are the official documentation examples:</p>
+            <p>This first example shows how to work with ABI and in-line mode.</p>
+            <p>This is the first feature supported by cffi and it's exactly what ctypes is done for.</p>
+            <p>Like you can see, with cffi, you just pass the C header to cdef and that's all !</p>
+            <p> Magic... Cffi syntax is clean, intuitive.</p>
+            <p>With ctypes you declare manually the library structure, thanks but no thanks ctypes!</p>
+        </aside>
+</section>
+
+<section>
+    <h1>API / out-of-line</h1>
+<section>
+        <pre><code style="max-height:1000px; margin-top: 9%;">from cffi import FFI
+ffibuilder = FFI()
+
+ffibuilder.set_source("_example",
+   r"""#include &ltsys/types.h&gt
+       #include &ltpwd.h&gt
+    """)
+
+ffibuilder.cdef("""
+    struct passwd {
+        char *pw_name;
+        ...;
+    };
+    struct passwd *getpwuid(int uid);
+""")
+
+if __name__ == "__main__":
+    ffibuilder.compile(verbose=True)
+</code></pre>
+<aside class="notes">
+    <p>cffi goes one step further with its API mode.</p>
+    <p>Syntax stills similar but you can notice a difference, we pass C code to cffi with "set_source" function.</p>
+    <p>Then you just ask cffi to compile your module.</p>
+    <p>Your Python extension is robust, fast and easy to maintain.</p>
+    <p>With this API mode, you can't have segmentation fault due to a mismatching ABI.</p>
+    <p> Moreover, it adds a convenient features, you can replace useless value by three dot but I will not go into detail on this feature.</p>
+</aside>
+</section>
+
+<section>
+    <h3 style="color: red;">Running</h3>
+        <pre><code style="max-height:1000px; margin-top: 9%;">from _example import ffi, lib
+
+p = lib.getpwuid(0)
+assert ffi.string(p.pw_name) == b'root' </code></pre>
+
+</section>
+
+</section>
+
+<section data-background-image="backgrounds/rebuild.jpg">
+    <h1 style="color: white; text-align:right; margin-top:15%;">rebuild</h1>
+    <aside class="notes">
+        <p>- Now the interesting part, I'm currently building a 3D engine with Python and the new Vulkan graphic API.</p>
+        <p>- Like I said to you, I created a Vulkan wrapper directly in C.</p>
+        <p>-But if I'm here today, it's thanks to Armin Rigo.</p>
+        <p>-When I show him my Vulkan wrapper on irc, it tells me "Such a shame you didn't use cffi".</p>
+        <p>-He then explains me advantages of cffi, it tooks no more to meet a new challenge, write a Vulkan wrapper directly with Cffi.</p>
+        <p>-Was I ready to loose month of work? It's a hard decision but I definitly made the right choice.</p>
+        <p>-I'm going to show you why.</p>
+    </aside>
+</section>
+
+<section>
+    <h1>Statistics</h1>
+    <section>
+        <h2><span style="color: #6b00d6">Vulkan API</span><br />
+        C Header : <span style="color: red">5088 loc</span><br />
+        Xml description : <span style="color: red">6461 loc</span><br />
+    </h2>
+    <aside class="notes">
+    </aside>
+    </section>
+    <section>
+        <h2 style="font-size: 1.4em"><span style="color: #d600ae;">C wrapper</span><br />
+        Generated C file : <span style="color: red">62705 loc</span><br />
+        Generator : <span style="color: red">1057 py-loc / 1141 c-loc</span><br />
+    </h2>
+    </section>
+    <section>
+        <h2><span style="color: #d60000;">Cffi wrapper</span><br />
+        Generated python file : <span style="color: red">4859 loc</span><br />
+        Generator : <span style="color: red">692 py-loc</span><br />
+    </h2>
+    <aside class="notes">
+        <p>- Moreover, with cffi it's only simple and clean Python code  !</p>
+        <p>- To give you an idea about time: it tooks me 1 month and a half for C version and 2 weeks with cffi.</p>
+        <p>- This time is only on my spare time, it would have taken only one week at full time.</p>
+        <p>- When I got an opened issue, I can fix it in 1 hour maximum because it's just Python.</p>
+        <p>- The C version was too difficult to maintain.</p>
+    </aside>
+    </section>
+</section>
+
+<section>
+    <h1>How it works ?</h1>
+    <h3 style="color: red" class="fragment current-visible">1 - Load and parse XML definition</h3>
+    <h3 style="color: blue" class="fragment current-visible">2 - Generate data model</h3>
+    <h3 style="color: green" class="fragment current-visible">3 - Generate Python module with jinja2</h3>
+    <aside class="notes">
+        <p>- In both case, I use a generator.</p>
+        <p>- Kronos Group did a great work with Vulkan API. All is Opensource and you can contribute easily on github.</p>
+        <p>- It provides an xml file that describes the API.</p>
+        <p>- My generator takes this XML file as input and generate the Vulkan wrapper.</p>
+        <p>- By doing a generator, I can update the wrapper in 2 minutes when a new version of the API is released!</p>
+        <p>Basically, here the steps</p>
+    </aside>
+</section>
+
+<section>
+    <h1>Jinja2 template</h1>
+    <section>
+        <aside class="notes">
+            <p>- Parsing is done with xmltodict package. it's a good way to parse an xml file without headache.</p>
+            <p>- It transforms your xml dict into a hierarchical dictionnary.</p>
+            <p>- Now that we have a good data model easy to parse, we can pass it to the jinja2 template.</p>
+            <p>- And that's where the two modules differ.</p>
+        <aside>
+    </section>
+    <section>
+        <h3 style="color: red">C extension</h3>
+    <pre><code>├── converters.c -> 423
+├── custom_functions.c -> 103
+├── custom_structs.c -> 59
+├── extension_functions.c -> 32
+├── functions.c -> 8
+├── header.c -> 11
+├── init.c -> 68
+├── init_unions
+│   ├── vkclearcolorvalue.c -> 69
+│   └── vkclearvalue.c -> 36
+├── macros.c -> 111
+├── main.c -> 122
+├── objects.c -> 99
+└── jfilter.py -> 542
+Total: 1683</code></pre>
+    <aside class="notes">
+        <p>- What you see is the folder structure of the C extension.</p>
+        <p>- For the C extension, there are too much things involved. To keep code maitainable, I had to split it up.</p>
+        <p>- Line of code is a good indicator here but what is more important is the complexity of the code.</p>
+        <p>- With C code, you have to manage memory yourself and this is error prone.</p>
+    </aside>
+    </section>
+
+    <section>
+        <h3 style="color: red">Cffi extension</h3>
+    <pre><code>vulkan.template.py -> 340</code></pre>
+    <h3 style="color: green">Only one small file</h3>
+    <aside class="notes">
+        <p>- This simple diagram means a lot !</p>
+        <p>With cffi, I didn't need to think about architecture, it was obvious, all in one file.</p>
+        <p>- One more point for cffi!</p>
+    </aside>
+    </section>
+</section>
+
+<section data-background-image="backgrounds/show-code.jpg">
+    <h1 style="color: black; margin-top:-35%">Show me the code !</h1>
+    <aside class="notes">
+You don't have to trust my words when I say cffi is better, let's see it in action and you will understand.
+    </aside>
+</section>
+
+<section>
+    <h1>Constants</h1>
+    <h2 style="color: red">C extension</h2>
+    <pre><code>PyModule_AddIntConstant(module, {{name}}, {{value}});</code></pre>
+    <h2 style="color: green">Cffi extension</h2>
+    <pre><code>{{name}} = {{value}}</code></pre>
+    <aside class="notes">
+        <p>Constant is the easier part and both case are simple:</p>
+        <p>C : We just use the CPython API to add constant to our module BUT we have to take care about variable type.</p>
+        <p>Cffi: It's just Python and its dynamically typped variables !</p>
+    </aside>
+</section>
+
+<section>
+    <h1>Objects</h1>
+    <section>
+        <aside class="notes">
+            <p>- Only with constants, you don't go far away...</p>
+            <p>- Next step is to create bindings for structs.</p>
+            <p>- BUT there is no struct concept in Python, there are classes which is similar.</p>
+        </aside>
+    </section>
+    <section>
+    <h2 style="color: red">C extension</h2>
+    <h3 class="fragment">new (malloc)</h3>
+    <h3 class="fragment">del (free)</h3>
+    <h3 class="fragment">get (for each member)</h3>
+    <aside class="notes">
+        <p>- With CPython, you have to handle the new, del, init, get for each member.</p>
+        <p>- You have to use malloc() to allocate memory for your object</p>
+        <p>- In init, you have to parse each parameter with CPython utils function.</p>
+        <p>- I can assure you it takes me lot of time to figure out how to properly do it! Code is so long that I can't show you an exemple on screen</p>
+    </aside>
+    </section>
+
+    <section>
+    <h2 style="color: red; margin-top: 7%">Cffi extension</h2>
+    <pre><code>def _new(ctype, **kwargs):
+    _type = ffi.typeof(ctype)
+
+    ptrs = {}
+    for k, v in kwargs.items():
+        # convert tuple pair to dict
+        ktype = dict(_type.fields)[k].type
+        if ktype.kind == 'pointer':
+            ptrs[k] = _cast_ptr(v, ktype)
+
+    init = dict(kwargs,  **{k: v for k, (v, _) in ptrs.items()})
+    return ffi.new(_type.cname + '*', init)[0]</code></pre>
+
+    <aside class="notes">
+        <p>- With cffi now, it's forty lines, cffi handles for us object allocation and deletion.</p>
+        <p>- I just used plain Python to handle all "struct" initialization in a generic way.</p>
+        <p>- When you realize this benefit, you just fall in love with cffi.</p>
+    </aside>
+    </section>
+
+</section>
+
+<section data-background-image="backgrounds/fast-api.jpg">
+    <h1 style="color: white; text-align:left; margin-top:-30%"><i>Fast API mode</i></h1>
+    <aside class="notes">
+        <p>What I showed you until here is the ABI mode, let's try the fast and robust API mode now.</p>
+    </aside>
+</section>
+
+<section>
+    <h1>shaderc wrapper</h1>
+    <aside class="notes">
+        <p>- We are going to create a binding for shaderc.</p>
+        <p>- Shaderc is a free software done by Google guys and gives you the ability to compile Glsl language to spirv binary.</p>
+        <p>- GLSL and SPIRV formats are used to create programs for your graphic card.</p>
+    </aside>
+</section>
+
+<section>
+    <h1>Folder design</h1>
+    <pre><code>├── _cffi_build
+│   ├── pyshaderc_build.py
+│   └── shaderc.h
+├── pyshaderc
+│   └── __init__.py
+└── setup.py</code></pre>
+
+    <aside class="notes">
+        <p>- I usually create a folder dedicated to cffi named _cffi_build and I recommand you to do so to keep a clean separation of concerns.</p>
+        <p>- shaderc.h contains shaderc function signatures and structs, we just copy/paste the header provided by google and cffi handles it.</p>
+        <p>- pyshaderc_build is used to generate the Python extension</p>
+        <p>- Next we have the pyshader folder containing our wrapper and finally we'll take a look at the setup file with a special cffi feature.</p>
+    </aside>
+</section>
+
+<section>
+    <h1>definition</h1>
+    <pre><code>ffi = FFI()
+with open('shaderc.h') as f:
+    ffi.cdef(f.read())</code></pre>
+
+    <aside class="notes">
+Three lines and cffi knows how to handle this library ! Beautiful !
+    </aside>
+</section>
+
+<section>
+    <h1>building</h1>
+<pre style="width: 95%"><code>
+ffi = FFI()
+with open('shaderc.h') as f:
+    source = f.read()
+
+ffi.set_source('_pyshaderc', source, libraries=['shaderc_combined'])
+
+if __name__ == '__main__':
+    ffi.compile()
+</code></pre>
+
+    <aside class="notes">
+        <p>- With theses few lines, we tell cffi to compile the source with statically linked library 'shaderc_combined' and to name the extension _pyshaderc.</p>
+        <p>- shaderc_combined is a static library that we have to compile before running this cffi part.</p>
+        <p>- I don't show you how because it's not directly related to cffi.</p>
+
+    </aside>
+</section>
+
+<section>
+    <h1>use</h1>
+    <section>
+        <aside class="notes">
+            <p>- Currently, our extension is ready but we have to use cffi to call it.</p>
+            <p>- For example, if you want to pass a pointer to a function, you have to use cffi.</p>
+            <p>- When using your library, your users shouldn't need to know cffi, it's just a dependancy.</p>
+            <p>- So we are going to write a small wrapper especially for that.</p>
+            <p>- This wrapper is located in pyshader/__init__.py to be loaded automatically when you import your module.</p>
+        </aside>
+    </section>
+    <section>
+        <pre><code>
+from pyshaderc._pyshaderc import ffi, lib
+        </code></pre>
+
+        <aside class="notes">
+            <p>- First we load our extension _pyshaderc which contains ffi and lib modules.</p>
+            <p>- lib contains all functions and struct related to our library.</p>
+            <p>- We need ffi too to interface with our lib.</p>
+        </aside>
+    </section>
+    <section>
+        <pre><code>
+def compile_into_spirv(raw, stage, suppress_warnings=False):
+    # initialize compiler
+    compiler = lib.shaderc_compiler_initialize()
+
+    # compile
+    result = lib.shaderc_compile_into_spv(compiler, raw, len(raw), stage, b"main")
+        </code></pre>
+
+        <aside class="notes">
+            <p>- Let's examine the "compile" function.</p>
+            <p>- All functions defined in our extension can be accessed through "lib".</p>
+            <p>- If you take a look at the compile line, we can pass pure Python types like int or string and cffi converts it for us.</p>
+            <p>- Clean, intuitive...</p>
+            <p>- Note that with Python3, string must be bytes.</p>
+        </aside>
+    </section>
+    <section>
+        <pre><code>
+    length = lib.shaderc_result_get_length(result)
+    output_pointer = lib.shaderc_result_get_bytes(result)
+
+    tmp = bytearray(length)
+    ffi.memmove(tmp, output_pointer, length)
+    spirv = bytes(tmp)
+
+    return spirv
+        </code></pre>
+
+        <aside class="notes">
+            <p>- Shaderc returns a pointer to us, we have to tell cffi to convert it to a bytes Python object.</p>
+            <p>- We first get back the pointer and the length but we can't directly copy the data to a bytes in Python because bytes type is immutable, so we have to copy data into a bytearray, and pass it to our bytes object.</p>
+            <p>- Take a look at the ffi.memmove function, it's similar to the memcpy C function but directly in Python.</p>
+            <p>I'm doing memory manipulation directly in Python !</p>
+        </aside>
+    </section>
+</section>
+
+<section>
+    <h1>setuptools integration</h1>
+        <pre><code>
+setup(
+    ...
+    cffi_modules=["_cffi_build/pyshaderc_build.py:ffi"]
+)
+        </code></pre>
+
+        <aside class="notes">
+In bonus, cffi provides a setuptools extension, just add the entry cffi_modules and your extension will be builded by setuptools.
+        </aside>
+
+</section>
+
+<section data-background-image="backgrounds/demo-time.jpg">
+    <h1 style="color: white; margin-top: -30%">Demo time !</h1>
+</section>
+
+<section>
+    <h1><span style="color: red">Give a try to cffi !</span></h1>
+    <h2><span style="color: blue">@</span><span style="color: red">realitix</span></h2>
+    <h2><span style="color: red">linagora</span><span style="color: blue">.com</span></h2>
+
+    <aside class="notes">
+        <p>- I hope that like me you enjoyed this talk. If one day you need to use a C library or to improve performance of your code, think about cffi.</p>
+        <p>- Thank you for your attention, have a nice day.</p>
+    </aside>
+</section>
+
+
+</div>
+</div>
+
+
+		<script src="reveal.js/lib/js/head.min.js"></script>
+		<script src="reveal.js/js/reveal.js"></script>
+
+		<script>
+			// More info https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				history: true,
+                controls: false,
+                                progress: true,
+                                keyboard: true,
+                                overview: true,
+                              //  parallaxBackgroundImage: "backgrounds/cvulkan.jpg",
+                              //  parallaxBackgroundSize: "2048px 1152px",
+
+				// More info https://github.com/hakimel/reveal.js#dependencies
+				dependencies: [
+					{ src: 'reveal.js/plugin/markdown/marked.js' },
+					{ src: 'reveal.js/plugin/markdown/markdown.js' },
+					{ src: 'reveal.js/plugin/notes/notes.js', async: true },
+					{ src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+				]
+			});
+// MOUSE CLICK
+var mcl = false;
+if(mcl) {
+window.addEventListener("mousedown", handleClick, false);
+window.addEventListener("contextmenu", function(e) { e.preventDefault(); }, false);
+
+function handleClick(e) {
+	e.preventDefault();
+	if(e.button === 0) Reveal.next();
+	if(e.button === 2) Reveal.prev();
+}
+}
+		</script>
+	</body>
+</html>
