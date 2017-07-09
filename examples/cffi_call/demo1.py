@@ -7,6 +7,4 @@ C = ffi.dlopen(None)
 
 arg = ffi.new("char[]", b'world')
 
-import ipdb; ipdb.set_trace()
-
-#C.printf(b"hi there, %d.\n", arg)
+C.printf(b"hi there, %d.\n", arg)

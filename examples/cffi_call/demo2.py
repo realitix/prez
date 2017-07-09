@@ -20,14 +20,3 @@ ffibuilder.cdef("""
 
 if __name__ == "__main__":
     ffibuilder.compile(verbose=True)
-
-
-# from _demo2 import ffi, lib
-
-# root name
-# p = lib.getpwuid(0)
-# ffi.string(p.pw_name)
-
-# realitix uid
-# p = lib.getpwnam(b"realitix")
-# p.pw_uid
