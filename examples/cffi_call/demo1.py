@@ -5,6 +5,6 @@ ffi = FFI()
 ffi.cdef('int printf(const char *format, ...);')
 C = ffi.dlopen(None)
 
-arg = ffi.new("char[]", b'world')
+arg = ffi.new("char[]", b'amazing')
 
-C.printf(b"hi there, %d.\n", arg)
+C.printf(b"cffi is %s\n", arg)

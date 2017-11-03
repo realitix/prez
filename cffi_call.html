@@ -32,25 +32,47 @@
     <h2>Call a C API from Python becomes more enjoyable with CFFI</h2>
     <br />
     <h3>Jean-Sébastien Bevilacqua</h3>
-    <img src="img/pyparis.png" style="border:none" width="40%">
+    <img src="img/logo-mel.png" style="border:none; box-shadow: none" width="30%">
     <br />
-    <img src="img/linagora.png" style="border:none">
     <aside class="notes">
         <p>- Welcome everyone, I'm glad to be here with you.</p>
-        <p>- I'm Jean-Sébastien Bevilacqua, I work at Linagora, a great company that promotes free software and it's this company which encouraged me to give this talk.</p>
         <p>- If I give this talk today, it's because I truly believe in CFFI to improve maintainability and robustness of Python extension.</p>
         <p>- I want to share with you my experience in order to convince you to give a try to CFFI next time you need to write a Python extension.</p>
 </aside>
+</section>
+
+<section data-background-image="img/plane.png" data-background-size="contain">
+    <h1 style="color: #FF0000; margin-top: 40%; margin-right:30%; margin-left:-20%; background: #FFFFFF">What a journey !</h1>
+    <aside class="notes">
+        <p>Like you can hear from my accent, I'm French and I come from Paris after one full day in plane.</p>
+        <p>It's long but it allows me to discover this magnificent country and you Australian people</p>
+        <p>By the way, you are really welcoming!</p>
+</aside>
+</section>
+
+<section>
+    <h2>/me</h2>
+    <p style="color:blue">twitter/@realitix</p>
+    <p>github.com/realitix</p>
+    <p style="color: red">realitix.github.io</p>
+    <img src="img/linagora.png" style="border:none">
+    <aside class="notes">
+        <p>- Who am I ?</p>
+        <p>- I'm Jean-Sébastien Bevilacqua, I write free software everyday and I'm a fan of OpenSource ecosystem and phylosophy.</p>
+        <p>- You can find a big parts of my contributions on github</p>
+        <p>- Moreover, I work at Linagora, a great French company that promotes free software and it's this company which encouraged me to give this talk.</p>
+        <p>- If you need support for a free software, just contact us, we'll be happy to help.</p>
+    </aside>
 </section>
 
 <section>
     <h1>Why Python extension ?</h1>
     <section>
         <aside class="notes">
-            <p>- But first, why do we need Python extension ? I'm going to tell you my use case.</p>
+            <p>- First, why do we need Python extension ? I'm going to tell you my use case.</p>
             <p>- Approximatly one year ago, the new Vulkan API was released. </p>
-            <p>- Vulkan is the new graphic API that will replace OpenGL</p>
-            <p> Back at this time, I was enjoying OpenGL development and with Vulkan, I saw an opportunity to improve my 3d and low level knowledge.</p>
+            <p>- Vulkan is the new graphic API that will replace OpenGL in a near futur, so it's a low-level graphic API. You can create triple A games with it and it's cross compatible with Windows, Linux and Android.</p>
+            <p>- Back at this time, I was enjoying OpenGL development and with Vulkan, I saw an opportunity to improve my 3d and low level knowledge.</p>
         </aside></section>
     <section>
         <h2 style="color: #6b00d6; padding-top:20%">
@@ -78,7 +100,7 @@
             <i class="fa fa-bolt fa-2x"></i>
         </h2>
         <aside class="notes">
-            You should know that Python extension can be used to improve performance too but that was not my use-case.
+            As a side note, you should know that Python extension can be used to improve performance too but that was not my use-case.
         </aside>
     </section>
 
@@ -92,7 +114,7 @@
     <aside class="notes">
         <p>Sadly, with C language, you can have system errors like segmentation fault.</p>
         <p>With Python it can be very hard to track a segmentation fault.</p>
-        <p>The valgrind tool can help you but it stills a difficult task</p>
+        <p>The valgrind tool can help you but it stills a difficult task that you won't enjoy.</p>
     </aside>
 </section>
 
@@ -113,7 +135,7 @@
     <h2 style="font-size:1.4em"><i>Application </i><span style="font-size:1.15em; color: red">binary</span> <i>interface</i></h2>
     <aside class="notes">
         <p>- From now, I will often use ABI / API words so I need to explain clearly what I mean by theses terms.</p>
-        <p>- ABI means Application Binary Interface and API means Application Programming Interface.</p>
+        <p>- API means Application Programming Interface and ABI means Application Binary Interface.</p>
         <p>- The API mode is what humans use, when you call a function, you need to know the name of the function and arguments to pass.</p>
         <p>- So as a PROGRAMMING interface, it's all expressed in source code.</p>
         <p>- The ABI is very similar, think of it as a compiled version of the API.</p>
@@ -126,7 +148,7 @@
         <p>- To be clear, when you write the program, you use the human API, then, when your program is compiled, computer will access the ABI of the library.</p>
         <p>- Maybe... You wonder the goal of ABI mode from a human point of view, we could just stick to the usual API mode.</p>
         <p>- Accessing a library with ABI mode allows you to dynamically link at runtime, and thus can be used with an interpreted language without compilation.</p>
-        <p>- You have to really understand this part, it's the only tricky part needed to fully exploit CFFI potential.</p>
+        <p>- Although ABI mode can be interesting to use, you have to explicitly describe the binary interface, like you will see.</p>
     </aside>
 </section>
 
@@ -135,7 +157,7 @@
     <section>
         <aside class="notes">
             <p>Let's see the existing solutions to easily write a Python extension.</p>
-            <p> Like I said just before, you can do it with the Cpython API but it's a difficult task.</p>
+            <p> Like I said just before, you can do it with the CPython API but it's a difficult task.</p>
         </aside>
     </section>
     <section>
@@ -158,8 +180,8 @@ def fib(<span style="color:red">int</span> n):
         <aside class="notes">
             <p>- It's very good but when you start to add custom cython syntax, your Python code is no more Python and so you loose portability and cython becomes a required dependancy.</p>
             <p>- You should take that into account before using it.</p>
-            <p>- You should take that into account before using it.</p>
             <p>- Such a high depandancy can be dangerous.</p>
+            <p>- The first goal of Cython it to improve performance of Python</p>
         </aside>
     </section>
     <section>
@@ -176,7 +198,7 @@ cython can be compiled and thus supports API and ABI mode.
         <h2 style="color:#6b00ae;">Built-in / ABI ONLY</h2>
         <img src="img/python-logo-custo.png" style="border:none; padding: 5%">
         <aside class="notes">
-            <p> - Another solution is ctypes</p>
+            <p>- Another solution is ctypes</p>
             <p>- ctypes is a builtin, it's a good point because you can be sure ctypes is always available.</p>
             <p>- With ctypes, you don't need compilation, it works on the ABI mode.</p>
             <p>- You dynamically link to a library during runtime.</p>
@@ -204,9 +226,9 @@ print('out = {}'.format(size))</code></pre>
 
         <aside class="notes">
             <p>- Like you can see on screen, to use ctypes, you need to learn a new API.</p>
-            <p>- You have to transle your C header to the ctypes API.</p>
+            <p>- You have to translate your C header to the ctypes API.</p>
             <p>- In this example, I declare a Point struct and get back the vector_size function from the library</p>
-            <p>- It's error prone and cumbersone.</p>
+            <p>- It's error prone and cumbersone. If you wrap a big library, it will be painfull and it could lead you to segmentation fault</p>
         </aside>
     </section>
 </section>
@@ -224,7 +246,7 @@ print('out = {}'.format(size))</code></pre>
         <p>For information Pypy is an alternative Python interpreter with a JIT.</p>
         <p>At first CFFI was an alternative to ctypes, it was working only in ABI mode, later the API mode was added and revolutionize Python extensions ecosystem.</p>
         <p>Before CFFI, to create an API mode extension for Python, you had to use the CPython C API or cython which only work with CPython.</p>
-        <p>With Cffi, extensions are working with CPython 2.x/3.x/PyPy without changing a line of your code!</p>
+        <p>With Cffi, extensions are working with CPython 2.x/3.x/PyPy without changing one line of your code!</p>
         </div>
         <div style="color: green">
             <p>Now you understand ABI and API mode, I can show you how it works with cffi.</p>
@@ -249,75 +271,118 @@ ffi.cdef("int printf(const char *format, ...);")
 
 C = ffi.dlopen(None)
 
-arg = ffi.new("char[]", "world")
-C.printf("hello %s\n", arg)</code></pre>
+arg = ffi.new("char[]", b"amazing")
+C.printf("cffi is %s\n", arg)</code></pre>
         <aside class="notes">
             <p>This first example shows how to work with ABI and in-line mode.</p>
             <p>This is the first feature supported by cffi and it's exactly what ctypes is done for.</p>
             <p>Like you can see, with cffi, you just pass the C header to cdef and open your library, that's all !</p>
+            <p>I let cffi knows the dlopen function by passing it to the cdef function.</p>
+            <p>Next I create a char argument and I can pass it to the printf function</p>
             <p>Magic... Cffi syntax is clean, intuitive.</p>
-            <p>With ctypes you declare manually the library structure, thanks but no thanks ctypes!</p>
         </aside>
     </section>
     <section>
-        <h1>DEMO</h1>
+        <pre><code>
+$ python demo1.py
+cffi is amazing
+        </code></pre>
         <aside class="notes">
-            <p>On this example, with dlopen(None), I load the entire C namespace which contains printf function</p>
-            <p>To let cffi knows this function, I have to give it with cdef.
-            <p>Then I create a char argument and I can pass it to the printf function</p>
-            <p>I use pdb to do it in front of you</p>
-            <p>My terminal session is at the pdb point in the program</p>
-            <p>Let's print !</p>
-            <p>It works!, The number is the value returned by the function printf</p>
+            <p>If you run this example on your computer, you will get this result</p>
+            <p>It works well ! I print with the C printf function, not the Python print function.</p>
+            <p>I usually do this demo in live but last time my terminal died during the talk so we'll stick to screenshot, it's safer</p>
         </aside>
     </section>
 </section>
 
 <section>
     <h1>API / out-of-line</h1>
+
 <section>
-        <pre><code style="max-height:1000px; margin-top: 9%;">from cffi import FFI
+    <h3 style="color: red; margin-top:8%">Step 1 - Builder source</h3>
+    <pre><code style="max-height: 1000px; margin-top: -3%">from cffi import FFI
+
 ffibuilder = FFI()
 
-ffibuilder.set_source("_example",
-   r"""#include &ltsys/types.h&gt
-       #include &ltpwd.h&gt
+ffibuilder.set_source("_demo2",
+   r"""#include &lt;sys/types.h&gt;
+       #include &lt;pwd.h&gt;
     """)
 
 ffibuilder.cdef("""
     struct passwd {
         char *pw_name;
+        char *pw_passwd;
+        int pw_uid;
         ...;
     };
     struct passwd *getpwuid(int uid);
+    struct passwd *getpwnam(const char *name);
 """)
 
 if __name__ == "__main__":
-    ffibuilder.compile(verbose=True)
-</code></pre>
+    ffibuilder.compile(verbose=True)</code></pre>
+
 <aside class="notes">
     <p>cffi goes one step further with its API mode.</p>
+    <p>This time we are going to use the API mode with the pwd library</p>
     <p>Syntax stills similar but you can notice a difference, we pass C code to cffi with "set_source" function.</p>
-    <p>Then you just ask cffi to compile your module.</p>
+    <p>- In the source, we just includes pwd and types<br />
+    - In the cdef, we don't need to add all pwd functions, just the ones we want to use<br />
+    - So here we use only two functions and we don't need all fields of passwd struct<br />
+    - Finally you just ask cffi to compile your module.</p>
+</aside>
+    </section>
+
+    <section>
+    <h3 style="color: red;">Step 2 - Build</h3>
+    <pre><code>$ python demo2_build.py
+generating ./_demo2.c
+running build_ext
+building '_demo2' extension
+x86_64-linux-gnu-gcc ... -c _demo2.c -o ./_demo2.o
+x86_64-linux-gnu-gcc ... ./_demo2.o -o ./_demo2.cpython-35m-x86_64-linux-gnu.so
+
+$ ls
+demo2_build.py  _demo2.c _demo2.o
+_demo2.cpython-35m-x86_64-linux-gnu.so</code></pre>
+
+<aside class="notes">
+    <p>Ok, Now we can compile this module. It's just a Python script and cffi handles the compilation part for us.</p>
+    <p>Compilation is fully cross-plateform thanks to cffi</p>
+    <p>Like you can see, cffi do the compilation with three steps<p>
+    <p>It generates a C file containing the source and the cffi black magic, it compiles it to an object file and finally generates the python module</p>
     <p>Your Python extension is robust, fast and easy to maintain.</p>
     <p>With this API mode, you can't have segmentation fault due to a mismatching ABI.</p>
-    <p> Moreover, it adds a convenient features, you can replace useless value by three dot but I will not go into detail on this feature.</p>
 </aside>
-</section>
 
-<section>
-    <h3 style="color: red;">Running</h3>
+    </section>
+    <section>
+        <h3 style="color: red;">Step 3 - Run</h3>
+        <pre><code>$ cat demo2_run.py
+from _demo2 import ffi, lib
+
+# root name
+p = lib.getpwuid(0)
+print(ffi.string(p.pw_name))
+
+# realitix uid
+p = lib.getpwnam(b"realitix")
+print(p.pw_uid)
+
+$ python demo2_run.py
+b'root'
+1000</code></pre>
 
         <aside class="notes">
-            <p>We can now use our lib, let's see with a demo.</p>
-            <p>This time we are going to use the API mode with the pwd library</p>
-            <p>Like you can see on your right, in the source, we just includes pwd and types</p>
-            <p>In the cdef, we don't need to add all pwd functions, just the ones we want to use</p>
-            <p>So here we use only two functions and we don't need all fields of passwd struct</p>
-            <p>Let's go. First we compile it, the we can use it</p>
-            <p>What is my UID ? / What is the name of the user 0 ?</p>
-            <p>It works like a charm!</p>
+            <p>Ok, let's try it now</p>
+            <p>On the top, you can see the content of demo2_run file and the result on the bottom</p>
+            <p>Like you can see, we get 'root' if we ask for the pid 0 name</p>
+            <p>And we get one thousand if we ask for my pid.</p>
+            <p>It's fully work and it's a real compiled CPython extension</p>
+            <p>Nice!</p>
         </aside>
+   </section>
 
 </section>
 
@@ -327,12 +392,12 @@ if __name__ == "__main__":
     <h1 style="color: white; text-align:right; margin-top:15%;">rebuild</h1>
     <aside class="notes">
         <p>- Now the interesting part, I'm currently building a 3D engine with Python and the new Vulkan graphic API.</p>
-        <p>- Like I said to you, I created a Vulkan wrapper directly in C.</p>
-        <p>-But if I'm here today, it's thanks to Armin Rigo.</p>
-        <p>-When I show him my Vulkan wrapper on irc, it tells me "Such a shame you didn't use cffi".</p>
-        <p>-He then explains me advantages of cffi, it tooks no more to meet a new challenge, write a Vulkan wrapper directly with Cffi.</p>
-        <p>-Was I ready to loose month of work? It's a hard decision but I definitly made the right choice.</p>
-        <p>-I'm going to show you why.</p>
+        <p>- Like I said to you, I created a Vulkan wrapper directly in C.<br />
+        -But if I'm here today, it's thanks to Armin Rigo.<br />
+        -When I show him my Vulkan wrapper on irc, it tells me "You could have used cffi".<br />
+        -He then explains me advantages of cffi, it tooks no more to meet a new challenge, write a Vulkan wrapper directly with Cffi.<br />
+        -Was I ready to loose month of work? It's a hard decision but I definitly made the right choice.<br />
+        -I'm going to show you why.</p>
     </aside>
 </section>
 
@@ -394,7 +459,7 @@ if __name__ == "__main__":
     <section>
         <aside class="notes">
             <p>- Parsing is done with xmltodict package. it's a good way to parse an xml file without headache.</p>
-            <p>- It transforms your xml dict into a hierarchical dictionnary.</p>
+            <p>- It transforms your xml file into a hierarchical dictionnary.</p>
             <p>- Now that we have a good data model easy to parse, we can pass it to the jinja2 template.</p>
             <p>- And that's where the two modules differ.</p>
         <aside>
@@ -551,7 +616,7 @@ with open('shaderc.h') as f:
     ffi.cdef(f.read())</code></pre>
 
     <aside class="notes">
-        <p>Like you see, we first read content of the sahderc header and pass it to the cdef function</p>
+        <p>Like you see, we first read content of the shaderc header and pass it to the cdef function</p>
         <p>That's all for the definition !</p>
         <p>Three lines and cffi knows how to handle this library ! Beautiful !</p>
     </aside>
@@ -573,7 +638,7 @@ if __name__ == '__main__':
     <aside class="notes">
         <p>- With theses few lines, we tell cffi to compile the source with statically linked library 'shaderc_combined' and to name the extension _pyshaderc.</p>
         <p>- shaderc_combined is a static library that we have to compile before running this cffi part.</p>
-        <p>- I don't show you how because it's not directly related to cffi.</p>
+        <p>- I don't show you how because it's not directly related to cffi. You can look on github if you are interested in.</p>
         <p>- Like you can see, there is no C code invovled, we just tell cffi to open a Python portal to the shaderc library</p>
         <p>- Here again, it looks like magic</p>
     </aside>
